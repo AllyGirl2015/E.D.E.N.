@@ -1,0 +1,14 @@
+E.D.E.N. includes an adapted message model from the uploaded SPhone source.
+Original path: src/main/java/com/dev/sphone/mod/common/phone/Message.java
+Source repository referenced by the user: https://github.com/oriongplays/Sphone
+Uploaded reference archive: SPhone-main (1).zip (retained unchanged in this repository).
+Original project contributors credited in its README: Sandji, MK, Ertinox,
+Gabidut76, Afhistos, and Yan36.
+Original source license: Apache License, Version 2.0 (included alongside this notice).
+
+Modifications: the old ACS serializer interfaces and mutable fields were replaced
+with an immutable Java record, a message ID, validation and native world persistence.
+The old Forge, ACsGuis, DynamX, JDBC and voice-chat binary dependencies are not bundled.
+The historical archive is a reference, not part of the E.D.E.N. runtime JAR.
+No MrCrayfish Device Mod source or assets are included. Its shared-device/app
+platform concept is an inspiration for this independent implementation.
