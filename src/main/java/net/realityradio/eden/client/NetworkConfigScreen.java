@@ -1,12 +1,117 @@
 package net.realityradio.eden.client;
-import com.google.gson.JsonObject;import net.minecraft.core.BlockPos;import net.minecraft.client.gui.GuiGraphics;import net.minecraft.client.gui.screens.Screen;import net.minecraft.client.gui.components.*;import net.minecraft.network.chat.Component;import net.neoforged.neoforge.network.PacketDistributor;import net.realityradio.eden.infrastructure.NodeAction;
+
+import com.google.gson.JsonObject;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.*;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.realityradio.eden.infrastructure.NodeAction;
+
 final class NetworkConfigScreen extends Screen {
- private JsonObject data;private EditBox carrier,ssid,password,range,power;private boolean enabled;private String error="";
- NetworkConfigScreen(JsonObject d){super(Component.literal("E.D.E.N. network hardware"));data=d;enabled=d.get("enabled").getAsBoolean();}void update(JsonObject d){data=d;error="Settings saved";}
- private EditBox field(String name,String value,int y,int max){var e=new EditBox(font,width/2-30,y,160,20,Component.literal(name));e.setMaxLength(max);e.setValue(value);addRenderableWidget(e);return e;}
- protected void init(){int y=height/2-96;carrier=field("Carrier",data.get("carrier").getAsString(),y,48);ssid=field("SSID",data.get("ssid").getAsString(),y+28,48);password=field("New WiFi password","",y+56,128);password.setHint(Component.literal("Blank keeps current key"));range=field("Range",data.get("range").getAsString(),y+84,5);power=field("FE per tick",data.get("power").getAsString(),y+112,5);
- addRenderableWidget(Button.builder(Component.literal(enabled?"Enabled":"Disabled"),b->{enabled=!enabled;b.setMessage(Component.literal(enabled?"Enabled":"Disabled"));}).bounds(width/2-130,y+144,120,20).build());
- var save=Button.builder(Component.literal("Apply"),b->save()).bounds(width/2+10,y+144,120,20).build();save.active=data.get("editable").getAsBoolean();addRenderableWidget(save);addRenderableWidget(Button.builder(Component.literal("Open WiFi (no key)"),b->{password.setValue("__open__");}).bounds(width/2-130,y+174,120,20).build());addRenderableWidget(Button.builder(Component.literal("Done"),b->onClose()).bounds(width/2+10,y+174,120,20).build());}
- private void save(){try{PacketDistributor.sendToServer(new NodeAction(new BlockPos(data.get("x").getAsInt(),data.get("y").getAsInt(),data.get("z").getAsInt()),carrier.getValue(),ssid.getValue(),password.getValue().equals("__open__")?"":password.getValue().isEmpty()?"__keep__":password.getValue(),Integer.parseInt(range.getValue()),Integer.parseInt(power.getValue()),enabled));error="Settings sent";}catch(NumberFormatException e){error="Range and power must be whole numbers";}}
- public void render(GuiGraphics g,int x,int y,float dt){g.fill(0,0,width,height,0xcc0b1018);int top=height/2-126;g.drawCenteredString(font,title,width/2,top,0xffffff);String[] labels={"Carrier","WiFi SSID","New password","Range (blocks)","FE/t budget"};for(int i=0;i<5;i++)g.drawString(font,labels[i],width/2-130,top+34+i*28,0xcbd5e1);g.drawCenteredString(font,"Stored: "+data.get("energy").getAsInt()+" FE | Uplink: "+data.get("uplink").getAsBoolean(),width/2,top-16,0xcbd5e1);g.drawCenteredString(font,error,width/2,top+238,0xffca7a);super.render(g,x,y,dt);}public boolean isPauseScreen(){return false;}
+  private JsonObject data;
+  private EditBox carrier, ssid, password, range, power;
+  private boolean enabled;
+  private String error = "";
+
+  NetworkConfigScreen(JsonObject d) {
+    super(Component.literal("E.D.E.N. network hardware"));
+    data = d;
+    enabled = d.get("enabled").getAsBoolean();
+  }
+
+  void update(JsonObject d) {
+    data = d;
+    error = "Settings saved";
+  }
+
+  private EditBox field(String name, String value, int y, int max) {
+    var e = new EditBox(font, width / 2 - 30, y, 160, 20, Component.literal(name));
+    e.setMaxLength(max);
+    e.setValue(value);
+    addRenderableWidget(e);
+    return e;
+  }
+
+  protected void init() {
+    int y = height / 2 - 96;
+    carrier = field("Carrier", data.get("carrier").getAsString(), y, 48);
+    ssid = field("SSID", data.get("ssid").getAsString(), y + 28, 48);
+    password = field("New WiFi password", "", y + 56, 128);
+    password.setHint(Component.literal("Blank keeps current key"));
+    range = field("Range", data.get("range").getAsString(), y + 84, 5);
+    power = field("FE per tick", data.get("power").getAsString(), y + 112, 5);
+    addRenderableWidget(
+        Button.builder(
+                Component.literal(enabled ? "Enabled" : "Disabled"),
+                b -> {
+                  enabled = !enabled;
+                  b.setMessage(Component.literal(enabled ? "Enabled" : "Disabled"));
+                })
+            .bounds(width / 2 - 130, y + 144, 120, 20)
+            .build());
+    var save =
+        Button.builder(Component.literal("Apply"), b -> save())
+            .bounds(width / 2 + 10, y + 144, 120, 20)
+            .build();
+    save.active = data.get("editable").getAsBoolean();
+    addRenderableWidget(save);
+    addRenderableWidget(
+        Button.builder(
+                Component.literal("Open WiFi (no key)"),
+                b -> {
+                  password.setValue("__open__");
+                })
+            .bounds(width / 2 - 130, y + 174, 120, 20)
+            .build());
+    addRenderableWidget(
+        Button.builder(Component.literal("Done"), b -> onClose())
+            .bounds(width / 2 + 10, y + 174, 120, 20)
+            .build());
+  }
+
+  private void save() {
+    try {
+      PacketDistributor.sendToServer(
+          new NodeAction(
+              new BlockPos(
+                  data.get("x").getAsInt(), data.get("y").getAsInt(), data.get("z").getAsInt()),
+              carrier.getValue(),
+              ssid.getValue(),
+              password.getValue().equals("__open__")
+                  ? ""
+                  : password.getValue().isEmpty() ? "__keep__" : password.getValue(),
+              Integer.parseInt(range.getValue()),
+              Integer.parseInt(power.getValue()),
+              enabled));
+      error = "Settings sent";
+    } catch (NumberFormatException e) {
+      error = "Range and power must be whole numbers";
+    }
+  }
+
+  public void render(GuiGraphics g, int x, int y, float dt) {
+    g.fill(0, 0, width, height, 0xcc0b1018);
+    int top = height / 2 - 126;
+    g.drawCenteredString(font, title, width / 2, top, 0xffffff);
+    String[] labels = {"Carrier", "WiFi SSID", "New password", "Range (blocks)", "FE/t budget"};
+    for (int i = 0; i < 5; i++)
+      g.drawString(font, labels[i], width / 2 - 130, top + 34 + i * 28, 0xcbd5e1);
+    g.drawCenteredString(
+        font,
+        "Stored: "
+            + data.get("energy").getAsInt()
+            + " FE | Uplink: "
+            + data.get("uplink").getAsBoolean(),
+        width / 2,
+        top - 16,
+        0xcbd5e1);
+    g.drawCenteredString(font, error, width / 2, top + 238, 0xffca7a);
+    super.render(g, x, y, dt);
+  }
+
+  public boolean isPauseScreen() {
+    return false;
+  }
 }

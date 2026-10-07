@@ -1,3 +1,26 @@
 package net.realityradio.eden.infrastructure;
-import org.junit.jupiter.api.Test;import static org.junit.jupiter.api.Assertions.*;
-class PackageVaultTest {@Test void encryptionRoundTripRandomSaltWrongKeyAndTampering(){String a=PackageVault.seal("shared data 🌱","test-password"),b=PackageVault.seal("shared data 🌱","test-password");assertNotEquals(a,b);assertEquals("shared data 🌱",PackageVault.open(a,"test-password"));assertThrows(IllegalArgumentException.class,()->PackageVault.open(a,"wrong-password"));assertThrows(IllegalArgumentException.class,()->PackageVault.open(a.substring(0,a.length()-4)+"AAAA","test-password"));}@Test void payloadAndPasswordLimits(){assertThrows(IllegalArgumentException.class,()->PackageVault.seal("x","short"));assertThrows(IllegalArgumentException.class,()->PackageVault.seal("x".repeat(2049),"test-password"));}}
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
+
+class PackageVaultTest {
+  @Test
+  void encryptionRoundTripRandomSaltWrongKeyAndTampering() {
+    String a = PackageVault.seal("shared data 🌱", "test-password"),
+        b = PackageVault.seal("shared data 🌱", "test-password");
+    assertNotEquals(a, b);
+    assertEquals("shared data 🌱", PackageVault.open(a, "test-password"));
+    assertThrows(IllegalArgumentException.class, () -> PackageVault.open(a, "wrong-password"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> PackageVault.open(a.substring(0, a.length() - 4) + "AAAA", "test-password"));
+  }
+
+  @Test
+  void payloadAndPasswordLimits() {
+    assertThrows(IllegalArgumentException.class, () -> PackageVault.seal("x", "short"));
+    assertThrows(
+        IllegalArgumentException.class, () -> PackageVault.seal("x".repeat(2049), "test-password"));
+  }
+}

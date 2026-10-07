@@ -2,9 +2,9 @@
   "credit": "\u2611 Made By Sylano <3",
   "textures": {
     "0": "sphone:items/iphone12",
-    "1": "blocks/bone_block_side",
-    "2": "blocks/bone_block_top",
-    "3": "blocks/concrete_silver",
+    "1": "minecraft:block/bone_block_side",
+    "2": "minecraft:block/bone_block_top",
+    "3": "minecraft:block/light_gray_concrete",
     "particle": "sphone:items/iphone12"
   },
   "elements": [

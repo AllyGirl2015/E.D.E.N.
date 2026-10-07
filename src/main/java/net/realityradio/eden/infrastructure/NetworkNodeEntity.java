@@ -1,34 +1,277 @@
 package net.realityradio.eden.infrastructure;
-import java.util.*;import net.minecraft.core.*;import net.minecraft.nbt.CompoundTag;import net.minecraft.server.level.ServerLevel;import net.minecraft.world.level.Level;import net.minecraft.world.level.block.entity.BlockEntity;import net.minecraft.world.level.block.state.BlockState;import net.neoforged.neoforge.energy.EnergyStorage;import net.realityradio.eden.*;
+
+import java.util.*;
+import net.minecraft.core.*;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.energy.EnergyStorage;
+import net.realityradio.eden.*;
+
 public final class NetworkNodeEntity extends BlockEntity {
- public UUID owner;public String carrier="Alyon Wireless",ssid="E.D.E.N. Wi-Fi",passwordHash=NetworkPolicy.wifiKey(ssid,"");
- public int requestedRange,powerDraw;public boolean enabled=true,powered;public Map<String,String> packages=new LinkedHashMap<>();
- public final net.neoforged.neoforge.items.ItemStackHandler inventory=new net.neoforged.neoforge.items.ItemStackHandler(9){protected void onContentsChanged(int slot){setChanged();}};
- public final NodeEnergy energy;
- public NetworkNodeEntity(BlockPos pos,BlockState state){super(Eden.NETWORK_ENTITY.get(),pos,state);requestedRange=kind().equals("tower")?256:32;powerDraw=kind().equals("tower")?128:kind().equals("router")?8:kind().equals("charger")?1024:16;energy=new NodeEnergy();}
- public String kind(){return getBlockState().is(Eden.TOWER.get())?"tower":getBlockState().is(Eden.ROUTER.get())?"router":getBlockState().is(Eden.RACK.get())?"rack":getBlockState().is(Eden.CHARGER.get())?"charger":"gateway";}
- public int range(){return kind().equals("tower")?NetworkPolicy.radius(requestedRange,powerDraw,EdenConfig.TOWER_BASE_RANGE.get(),EdenConfig.TOWER_BASE_FE.get(),EdenConfig.TOWER_MAX_RANGE.get()):Math.min(requestedRange,EdenConfig.ROUTER_MAX_RANGE.get());}
- public boolean operating(){return enabled&&powered&&!isRemoved()&&level!=null&&level.hasChunkAt(worldPosition);}
- public boolean exportDisk(String name){var encrypted=packages.get(name);if(encrypted==null||!operating()||!kind().equals("rack"))return false;
-  for(int i=0;i<inventory.getSlots();i++){var s=inventory.getStackInSlot(i);var existing=s.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);if(!s.is(Eden.DATA_DISK.get())||existing!=null&&existing.contains("package"))continue;
-   var result=new net.minecraft.world.item.ItemStack(Eden.DATA_DISK.get());var tag=new CompoundTag();tag.putString("package",name);tag.putString("encrypted",encrypted);result.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.of(tag));result.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,net.minecraft.network.chat.Component.literal("Encrypted package: "+name));inventory.setStackInSlot(i,result);return true;}return false;
- }
- public boolean importDisk(){if(!operating()||!kind().equals("rack"))return false;for(int i=0;i<inventory.getSlots();i++){var s=inventory.getStackInSlot(i);var d=s.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);if(!s.is(Eden.DATA_DISK.get())||d==null||!d.contains("package"))continue;var t=d.copyTag();String name=t.getString("package"),encrypted=t.getString("encrypted");if(!name.matches("[a-zA-Z0-9_.-]{1,40}")||!encrypted.startsWith("v1:")||encrypted.length()>20000||packages.size()>=32&&!packages.containsKey(name))continue;packages.put(name,encrypted);setChanged();return true;}return false;}
- @li.cil.oc2.api.bus.device.object.Callback public Map<String,Object> getNetworkStatus(){return Map.of("type",kind(),"powered",operating(),"energyFE",energy.getEnergyStored(),"radius",range(),"carrier",carrier,"ssid",ssid,"wan",level instanceof ServerLevel s&&operating()&&Connectivity.uplink(s,this));}
- @li.cil.oc2.api.bus.device.object.Callback public List<String> listPackages(){return operating()&&kind().equals("rack")?List.copyOf(packages.keySet()):List.of();}
- @li.cil.oc2.api.bus.device.object.Callback public String readPackage(String name,String password){if(!operating()||!kind().equals("rack"))throw new IllegalArgumentException("Rack is offline");return PackageVault.open(packages.get(name),password);}
- @li.cil.oc2.api.bus.device.object.Callback public boolean writePackage(String name,String text,String packagePassword,String controlPassword){if(!operating()||!kind().equals("rack")||name==null||!name.matches("[a-zA-Z0-9_.-]{1,40}")||controlPassword==null||controlPassword.length()<8||!passwordHash.equals(NetworkPolicy.wifiKey(ssid,controlPassword))||packages.size()>=32&&!packages.containsKey(name))return false;packages.put(name,PackageVault.seal(text,packagePassword));setChanged();return true;}
- @li.cil.oc2.api.bus.device.object.Callback public boolean createPackageDisk(String name,String controlPassword){return controlPassword!=null&&controlPassword.length()>=8&&passwordHash.equals(NetworkPolicy.wifiKey(ssid,controlPassword))&&exportDisk(name);}
- public final class NodeEnergy extends EnergyStorage {
-  NodeEnergy(){super(200000,1000000,0);}private void configure(){capacity=EdenConfig.BUFFER_FE.get();maxReceive=EdenConfig.MAX_DRAW.get()*20;energy=Math.min(energy,capacity);}
-  public int receiveEnergy(int amount,boolean simulate){configure();int n=super.receiveEnergy(Math.max(0,amount),simulate);if(n>0&&!simulate)setChanged();return n;}
-  public int getEnergyStored(){configure();return super.getEnergyStored();}public int getMaxEnergyStored(){configure();return super.getMaxEnergyStored();}public boolean spend(int amount){if(energy<amount)return false;energy-=amount;setChanged();return true;}public void restore(int value){energy=Math.max(0,Math.min(value,200000000));}
- }
- public void onLoad(){super.onLoad();if(level instanceof ServerLevel s)Connectivity.add(s,this);}public void setRemoved(){if(level instanceof ServerLevel s)Connectivity.remove(s,worldPosition);super.setRemoved();}
- public static void tick(Level level,BlockPos pos,BlockState state,NetworkNodeEntity n){int cost=n.kind().equals("charger")?2:Math.max(n.kind().equals("router")?EdenConfig.ROUTER_FE.get():n.kind().equals("gateway")?EdenConfig.GATEWAY_FE.get():1,Math.min(n.powerDraw,EdenConfig.MAX_DRAW.get()));boolean on=n.enabled&&(!EdenConfig.REQUIRE_POWER.get()||n.energy.spend(cost));n.powered=on;
-  if(on&&n.kind().equals("charger")){int left=Math.min(n.powerDraw,EdenConfig.MAX_DRAW.get());for(int i=0;i<n.inventory.getSlots()&&left>0;i++){var cell=n.inventory.getStackInSlot(i).getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM);if(cell==null||!cell.canReceive())continue;int amount=cell.receiveEnergy(Math.min(left,n.energy.getEnergyStored()),true);int accepted=cell.receiveEnergy(amount,false);if(accepted>0){n.energy.spend(accepted);left-=accepted;n.setChanged();}}}
-  if(level.getGameTime()%20==0&&state.getValue(NetworkNodeBlock.ONLINE)!=on)level.setBlock(pos,state.setValue(NetworkNodeBlock.ONLINE,on),3);
- }
- protected void saveAdditional(CompoundTag t,HolderLookup.Provider lookup){super.saveAdditional(t,lookup);if(owner!=null)t.putUUID("owner",owner);t.putString("carrier",carrier);t.putString("ssid",ssid);t.putString("passwordHash",passwordHash);t.putInt("range",requestedRange);t.putInt("powerDraw",powerDraw);t.putInt("energy",energy.getEnergyStored());t.putBoolean("enabled",enabled);var files=new CompoundTag();packages.forEach(files::putString);t.put("packages",files);t.put("inventory",inventory.serializeNBT(lookup));}
- protected void loadAdditional(CompoundTag t,HolderLookup.Provider lookup){super.loadAdditional(t,lookup);owner=t.hasUUID("owner")?t.getUUID("owner"):null;if(t.contains("carrier"))carrier=t.getString("carrier");if(t.contains("ssid"))ssid=t.getString("ssid");if(t.contains("passwordHash"))passwordHash=t.getString("passwordHash");if(t.contains("range"))requestedRange=Math.max(1,t.getInt("range"));if(t.contains("powerDraw"))powerDraw=Math.max(1,t.getInt("powerDraw"));energy.restore(t.getInt("energy"));enabled=!t.contains("enabled")||t.getBoolean("enabled");packages.clear();var files=t.getCompound("packages");for(var key:files.getAllKeys())if(packages.size()<32&&key.matches("[a-zA-Z0-9_.-]{1,40}")&&files.getString(key).length()<=20000)packages.put(key,files.getString(key));if(t.contains("inventory"))inventory.deserializeNBT(lookup,t.getCompound("inventory"));}
+  public UUID owner;
+  public String carrier = "Alyon Wireless",
+      ssid = "E.D.E.N. Wi-Fi",
+      passwordHash = NetworkPolicy.wifiKey(ssid, "");
+  public int requestedRange, powerDraw;
+  public boolean enabled = true, powered;
+  public Map<String, String> packages = new LinkedHashMap<>();
+  public final net.neoforged.neoforge.items.ItemStackHandler inventory =
+      new net.neoforged.neoforge.items.ItemStackHandler(9) {
+        protected void onContentsChanged(int slot) {
+          setChanged();
+        }
+      };
+  public final NodeEnergy energy;
+
+  public NetworkNodeEntity(BlockPos pos, BlockState state) {
+    super(Eden.NETWORK_ENTITY.get(), pos, state);
+    requestedRange = kind().equals("tower") ? 256 : 32;
+    powerDraw =
+        kind().equals("tower")
+            ? 128
+            : kind().equals("router") ? 8 : kind().equals("charger") ? 1024 : 16;
+    energy = new NodeEnergy();
+  }
+
+  public String kind() {
+    return getBlockState().is(Eden.TOWER.get())
+        ? "tower"
+        : getBlockState().is(Eden.ROUTER.get())
+            ? "router"
+            : getBlockState().is(Eden.RACK.get())
+                ? "rack"
+                : getBlockState().is(Eden.CHARGER.get()) ? "charger" : "gateway";
+  }
+
+  public int range() {
+    return kind().equals("tower")
+        ? NetworkPolicy.radius(
+            requestedRange,
+            powerDraw,
+            EdenConfig.TOWER_BASE_RANGE.get(),
+            EdenConfig.TOWER_BASE_FE.get(),
+            EdenConfig.TOWER_MAX_RANGE.get())
+        : Math.min(requestedRange, EdenConfig.ROUTER_MAX_RANGE.get());
+  }
+
+  public boolean operating() {
+    return enabled && powered && !isRemoved() && level != null && level.hasChunkAt(worldPosition);
+  }
+
+  public boolean exportDisk(String name) {
+    var encrypted = packages.get(name);
+    if (encrypted == null || !operating() || !kind().equals("rack")) return false;
+    for (int i = 0; i < inventory.getSlots(); i++) {
+      var s = inventory.getStackInSlot(i);
+      var existing = s.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
+      if (!s.is(Eden.DATA_DISK.get()) || existing != null && existing.contains("package")) continue;
+      var result = new net.minecraft.world.item.ItemStack(Eden.DATA_DISK.get());
+      var tag = new CompoundTag();
+      tag.putString("package", name);
+      tag.putString("encrypted", encrypted);
+      result.set(
+          net.minecraft.core.component.DataComponents.CUSTOM_DATA,
+          net.minecraft.world.item.component.CustomData.of(tag));
+      result.set(
+          net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+          net.minecraft.network.chat.Component.literal("Encrypted package: " + name));
+      inventory.setStackInSlot(i, result);
+      return true;
+    }
+    return false;
+  }
+
+  public boolean importDisk() {
+    if (!operating() || !kind().equals("rack")) return false;
+    for (int i = 0; i < inventory.getSlots(); i++) {
+      var s = inventory.getStackInSlot(i);
+      var d = s.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA);
+      if (!s.is(Eden.DATA_DISK.get()) || d == null || !d.contains("package")) continue;
+      var t = d.copyTag();
+      String name = t.getString("package"), encrypted = t.getString("encrypted");
+      if (!name.matches("[a-zA-Z0-9_.-]{1,40}")
+          || !encrypted.startsWith("v1:")
+          || encrypted.length() > 20000
+          || packages.size() >= 32 && !packages.containsKey(name)) continue;
+      packages.put(name, encrypted);
+      setChanged();
+      return true;
+    }
+    return false;
+  }
+
+  @li.cil.oc2.api.bus.device.object.Callback
+  public Map<String, Object> getNetworkStatus() {
+    return Map.of(
+        "type",
+        kind(),
+        "powered",
+        operating(),
+        "energyFE",
+        energy.getEnergyStored(),
+        "radius",
+        range(),
+        "carrier",
+        carrier,
+        "ssid",
+        ssid,
+        "wan",
+        level instanceof ServerLevel s && operating() && Connectivity.uplink(s, this));
+  }
+
+  @li.cil.oc2.api.bus.device.object.Callback
+  public List<String> listPackages() {
+    return operating() && kind().equals("rack") ? List.copyOf(packages.keySet()) : List.of();
+  }
+
+  @li.cil.oc2.api.bus.device.object.Callback
+  public String readPackage(String name, String password) {
+    if (!operating() || !kind().equals("rack"))
+      throw new IllegalArgumentException("Rack is offline");
+    return PackageVault.open(packages.get(name), password);
+  }
+
+  @li.cil.oc2.api.bus.device.object.Callback
+  public boolean writePackage(
+      String name, String text, String packagePassword, String controlPassword) {
+    if (!operating()
+        || !kind().equals("rack")
+        || name == null
+        || !name.matches("[a-zA-Z0-9_.-]{1,40}")
+        || controlPassword == null
+        || controlPassword.length() < 8
+        || !passwordHash.equals(NetworkPolicy.wifiKey(ssid, controlPassword))
+        || packages.size() >= 32 && !packages.containsKey(name)) return false;
+    packages.put(name, PackageVault.seal(text, packagePassword));
+    setChanged();
+    return true;
+  }
+
+  @li.cil.oc2.api.bus.device.object.Callback
+  public boolean createPackageDisk(String name, String controlPassword) {
+    return controlPassword != null
+        && controlPassword.length() >= 8
+        && passwordHash.equals(NetworkPolicy.wifiKey(ssid, controlPassword))
+        && exportDisk(name);
+  }
+
+  public final class NodeEnergy extends EnergyStorage {
+    NodeEnergy() {
+      super(200000, 1000000, 0);
+    }
+
+    private void configure() {
+      capacity = EdenConfig.BUFFER_FE.get();
+      maxReceive = EdenConfig.MAX_DRAW.get() * 20;
+      energy = Math.min(energy, capacity);
+    }
+
+    public int receiveEnergy(int amount, boolean simulate) {
+      configure();
+      int n = super.receiveEnergy(Math.max(0, amount), simulate);
+      if (n > 0 && !simulate) setChanged();
+      return n;
+    }
+
+    public int getEnergyStored() {
+      configure();
+      return super.getEnergyStored();
+    }
+
+    public int getMaxEnergyStored() {
+      configure();
+      return super.getMaxEnergyStored();
+    }
+
+    public boolean spend(int amount) {
+      if (energy < amount) return false;
+      energy -= amount;
+      setChanged();
+      return true;
+    }
+
+    public void restore(int value) {
+      energy = Math.max(0, Math.min(value, 200000000));
+    }
+  }
+
+  public void onLoad() {
+    super.onLoad();
+    if (level instanceof ServerLevel s) Connectivity.add(s, this);
+  }
+
+  public void setRemoved() {
+    if (level instanceof ServerLevel s) Connectivity.remove(s, worldPosition);
+    super.setRemoved();
+  }
+
+  public static void tick(Level level, BlockPos pos, BlockState state, NetworkNodeEntity n) {
+    int cost =
+        n.kind().equals("charger")
+            ? 2
+            : Math.max(
+                n.kind().equals("router")
+                    ? EdenConfig.ROUTER_FE.get()
+                    : n.kind().equals("gateway") ? EdenConfig.GATEWAY_FE.get() : 1,
+                Math.min(n.powerDraw, EdenConfig.MAX_DRAW.get()));
+    boolean on = n.enabled && (!EdenConfig.REQUIRE_POWER.get() || n.energy.spend(cost));
+    n.powered = on;
+    if (on && n.kind().equals("charger")) {
+      int left = Math.min(n.powerDraw, EdenConfig.MAX_DRAW.get());
+      for (int i = 0; i < n.inventory.getSlots() && left > 0; i++) {
+        var cell =
+            n.inventory
+                .getStackInSlot(i)
+                .getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM);
+        if (cell == null || !cell.canReceive()) continue;
+        int amount = cell.receiveEnergy(Math.min(left, n.energy.getEnergyStored()), true);
+        int accepted = cell.receiveEnergy(amount, false);
+        if (accepted > 0) {
+          n.energy.spend(accepted);
+          left -= accepted;
+          n.setChanged();
+        }
+      }
+    }
+    if (level.getGameTime() % 20 == 0 && state.getValue(NetworkNodeBlock.ONLINE) != on)
+      level.setBlock(pos, state.setValue(NetworkNodeBlock.ONLINE, on), 3);
+  }
+
+  protected void saveAdditional(CompoundTag t, HolderLookup.Provider lookup) {
+    super.saveAdditional(t, lookup);
+    if (owner != null) t.putUUID("owner", owner);
+    t.putString("carrier", carrier);
+    t.putString("ssid", ssid);
+    t.putString("passwordHash", passwordHash);
+    t.putInt("range", requestedRange);
+    t.putInt("powerDraw", powerDraw);
+    t.putInt("energy", energy.getEnergyStored());
+    t.putBoolean("enabled", enabled);
+    var files = new CompoundTag();
+    packages.forEach(files::putString);
+    t.put("packages", files);
+    t.put("inventory", inventory.serializeNBT(lookup));
+  }
+
+  protected void loadAdditional(CompoundTag t, HolderLookup.Provider lookup) {
+    super.loadAdditional(t, lookup);
+    owner = t.hasUUID("owner") ? t.getUUID("owner") : null;
+    if (t.contains("carrier")) carrier = t.getString("carrier");
+    if (t.contains("ssid")) ssid = t.getString("ssid");
+    if (t.contains("passwordHash")) passwordHash = t.getString("passwordHash");
+    if (t.contains("range")) requestedRange = Math.max(1, t.getInt("range"));
+    if (t.contains("powerDraw")) powerDraw = Math.max(1, t.getInt("powerDraw"));
+    energy.restore(t.getInt("energy"));
+    enabled = !t.contains("enabled") || t.getBoolean("enabled");
+    packages.clear();
+    var files = t.getCompound("packages");
+    for (var key : files.getAllKeys())
+      if (packages.size() < 32
+          && key.matches("[a-zA-Z0-9_.-]{1,40}")
+          && files.getString(key).length() <= 20000) packages.put(key, files.getString(key));
+    if (t.contains("inventory")) inventory.deserializeNBT(lookup, t.getCompound("inventory"));
+  }
 }

@@ -1,17 +1,171 @@
 package net.realityradio.eden.network;
-import com.google.gson.JsonObject;import java.util.*;import java.util.concurrent.ConcurrentHashMap;import java.util.function.Predicate;import net.minecraft.network.chat.Component;import net.minecraft.server.level.ServerPlayer;import net.neoforged.neoforge.event.tick.ServerTickEvent;import net.neoforged.neoforge.server.ServerLifecycleHooks;import net.realityradio.eden.Eden;import net.realityradio.eden.core.*;import net.realityradio.eden.device.*;import net.realityradio.eden.storage.EdenSavedData;import net.realityradio.eden.infrastructure.Connectivity;
+
+import com.google.gson.JsonObject;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import net.realityradio.eden.Eden;
+import net.realityradio.eden.core.*;
+import net.realityradio.eden.device.*;
+import net.realityradio.eden.infrastructure.Connectivity;
+import net.realityradio.eden.storage.EdenSavedData;
+
 public final class PhoneCalls {
- private static final CallBook BOOK=new CallBook();public record Route(UUID recipient,UUID channel){}private static final Map<UUID,Route>ROUTES=new ConcurrentHashMap<>();private static volatile Predicate<UUID>voiceConnected=id->false;private static volatile boolean voiceReady;
- public static void voiceStarted(Predicate<UUID>c){voiceConnected=c;voiceReady=true;}public static void voiceStopped(){voiceReady=false;voiceConnected=id->false;ROUTES.clear();}public static boolean voiceAvailable(){return voiceReady;}public static Route route(UUID id){return ROUTES.get(id);}
- public static String dial(ServerPlayer caller,DeviceRecord d,String number){var network=EdenSavedData.get(caller.server).network;var own=network.account(d.id);if(!voiceReady)throw new IllegalArgumentException("Calls require Simple Voice Chat on clients and server");if(!voiceConnected.test(caller.getUUID()))throw new IllegalArgumentException("Connect your Simple Voice Chat microphone first");
-  for(var p:caller.server.getPlayerList().getPlayers())for(int i=0;i<p.getInventory().getContainerSize();i++){var stack=p.getInventory().getItem(i);if(!(stack.getItem()instanceof DeviceItem))continue;var id=stack.get(Eden.DEVICE_ID.get());var other=network.devices.get(id);if(other==null||other.sim==null||!network.account(id).number.equals(number))continue;if(!BatteryPower.powered(p.server,other))throw new IllegalArgumentException("That phone battery is empty");if(!Connectivity.mobileLink(p,other).online())throw new IllegalArgumentException("That phone has no coverage");if(!voiceConnected.test(p.getUUID()))throw new IllegalArgumentException("That player is not connected to voice chat");var c=BOOK.dial(caller.getUUID(),p.getUUID(),d.id,id,own.number,number,System.currentTimeMillis());p.displayClientMessage(Component.literal("Incoming phone call from "+own.number+". Open your phone to answer."),false);notifyBoth(c,"");return "Calling "+number;}
-  throw new IllegalArgumentException("Number unavailable; phone must be in an online player's inventory");
- }
- public static String answer(ServerPlayer p,DeviceRecord d){var c=BOOK.get(p.getUUID());if(c==null||!voiceReady||!voiceConnected.test(p.getUUID())||!voiceConnected.test(c.peer(p.getUUID())))throw new IllegalArgumentException("Voice connection unavailable");if(!available(p.server.getPlayerList().getPlayer(c.caller()),c.callerDevice(),c.from())||!available(p,d.id,c.to()))throw new IllegalArgumentException("Phone battery, SIM or network unavailable");c=BOOK.answer(p.getUUID(),d.id,System.currentTimeMillis());ROUTES.put(c.caller(),new Route(c.callee(),UUID.randomUUID()));ROUTES.put(c.callee(),new Route(c.caller(),UUID.randomUUID()));notifyBoth(c,"Call connected");return "Call connected";}
- public static void disconnect(UUID p){var c=BOOK.end(p);if(c!=null){ROUTES.remove(c.caller());ROUTES.remove(c.callee());notifyBoth(c,"Call ended");}}public static void clear(){BOOK.clear();ROUTES.clear();voiceStopped();}
- public static JsonObject snapshot(UUID p,UUID d){var j=new JsonObject();var c=BOOK.get(p);j.addProperty("state","idle");if(c==null||!c.device(p).equals(d))return j;j.addProperty("state",c.active()?"active":c.callee().equals(p)?"incoming":"ringing");j.addProperty("number",c.caller().equals(p)?c.to():c.from());j.addProperty("since",c.active()?c.answered():c.created());return j;}
- private static void notifyBoth(CallBook.Call c,String status){var s=ServerLifecycleHooks.getCurrentServer();if(s==null)return;for(var id:List.of(c.caller(),c.callee())){var p=s.getPlayerList().getPlayer(id);if(p!=null)ServerDevices.snapshot(p,c.device(id),false,status);}}
- private static boolean available(ServerPlayer p,UUID d,String number){if(p==null||!p.isAlive())return false;var network=EdenSavedData.get(p.server).network;var record=network.devices.get(d);if(record==null||!BatteryPower.powered(p.server,record)||record.sim==null||!network.account(d).number.equals(number))return false;for(int i=0;i<p.getInventory().getContainerSize();i++){var stack=p.getInventory().getItem(i);if(stack.getItem()instanceof DeviceItem&&d.equals(stack.get(Eden.DEVICE_ID.get())))return Connectivity.mobileLink(p,record).online();}return record.kind.equals("desktop")&&ServerDevices.terminalAvailable(p,d,record);}
- public static void tick(ServerTickEvent.Post e){if(e.getServer().getTickCount()%20!=0)return;long now=System.currentTimeMillis();for(var c:BOOK.all()){var a=e.getServer().getPlayerList().getPlayer(c.caller());var b=e.getServer().getPlayerList().getPlayer(c.callee());if(!c.active()&&now-c.created()>60000||!available(a,c.callerDevice(),c.from())||!available(b,c.calleeDevice(),c.to())||!voiceReady||!voiceConnected.test(c.caller())||!voiceConnected.test(c.callee()))disconnect(c.caller());else notifyBoth(c,"");}}
- private PhoneCalls(){}
+  private static final CallBook BOOK = new CallBook();
+
+  public record Route(UUID recipient, UUID channel) {}
+
+  private static final Map<UUID, Route> ROUTES = new ConcurrentHashMap<>();
+  private static volatile Predicate<UUID> voiceConnected = id -> false;
+  private static volatile boolean voiceReady;
+
+  public static void voiceStarted(Predicate<UUID> c) {
+    voiceConnected = c;
+    voiceReady = true;
+  }
+
+  public static void voiceStopped() {
+    voiceReady = false;
+    voiceConnected = id -> false;
+    ROUTES.clear();
+  }
+
+  public static boolean voiceAvailable() {
+    return voiceReady;
+  }
+
+  public static Route route(UUID id) {
+    return ROUTES.get(id);
+  }
+
+  public static String dial(ServerPlayer caller, DeviceRecord d, String number) {
+    var network = EdenSavedData.get(caller.server).network;
+    var own = network.account(d.id);
+    if (!voiceReady)
+      throw new IllegalArgumentException("Calls require Simple Voice Chat on clients and server");
+    if (!voiceConnected.test(caller.getUUID()))
+      throw new IllegalArgumentException("Connect your Simple Voice Chat microphone first");
+    for (var p : caller.server.getPlayerList().getPlayers())
+      for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+        var stack = p.getInventory().getItem(i);
+        if (!(stack.getItem() instanceof DeviceItem)) continue;
+        var id = stack.get(Eden.DEVICE_ID.get());
+        var other = network.devices.get(id);
+        if (other == null || other.sim == null || !network.account(id).number.equals(number))
+          continue;
+        if (!BatteryPower.powered(p.server, other))
+          throw new IllegalArgumentException("That phone battery is empty");
+        if (!Connectivity.mobileLink(p, other).online())
+          throw new IllegalArgumentException("That phone has no coverage");
+        if (!voiceConnected.test(p.getUUID()))
+          throw new IllegalArgumentException("That player is not connected to voice chat");
+        var c =
+            BOOK.dial(
+                caller.getUUID(),
+                p.getUUID(),
+                d.id,
+                id,
+                own.number,
+                number,
+                System.currentTimeMillis());
+        p.displayClientMessage(
+            Component.literal(
+                "Incoming phone call from " + own.number + ". Open your phone to answer."),
+            false);
+        notifyBoth(c, "");
+        return "Calling " + number;
+      }
+    throw new IllegalArgumentException(
+        "Number unavailable; phone must be in an online player's inventory");
+  }
+
+  public static String answer(ServerPlayer p, DeviceRecord d) {
+    var c = BOOK.get(p.getUUID());
+    if (c == null
+        || !voiceReady
+        || !voiceConnected.test(p.getUUID())
+        || !voiceConnected.test(c.peer(p.getUUID())))
+      throw new IllegalArgumentException("Voice connection unavailable");
+    if (!available(p.server.getPlayerList().getPlayer(c.caller()), c.callerDevice(), c.from())
+        || !available(p, d.id, c.to()))
+      throw new IllegalArgumentException("Phone battery, SIM or network unavailable");
+    c = BOOK.answer(p.getUUID(), d.id, System.currentTimeMillis());
+    ROUTES.put(c.caller(), new Route(c.callee(), UUID.randomUUID()));
+    ROUTES.put(c.callee(), new Route(c.caller(), UUID.randomUUID()));
+    notifyBoth(c, "Call connected");
+    return "Call connected";
+  }
+
+  public static void disconnect(UUID p) {
+    var c = BOOK.end(p);
+    if (c != null) {
+      ROUTES.remove(c.caller());
+      ROUTES.remove(c.callee());
+      notifyBoth(c, "Call ended");
+    }
+  }
+
+  public static void clear() {
+    BOOK.clear();
+    ROUTES.clear();
+    voiceStopped();
+  }
+
+  public static JsonObject snapshot(UUID p, UUID d) {
+    var j = new JsonObject();
+    var c = BOOK.get(p);
+    j.addProperty("state", "idle");
+    if (c == null || !c.device(p).equals(d)) return j;
+    j.addProperty("state", c.active() ? "active" : c.callee().equals(p) ? "incoming" : "ringing");
+    j.addProperty("number", c.caller().equals(p) ? c.to() : c.from());
+    j.addProperty("since", c.active() ? c.answered() : c.created());
+    return j;
+  }
+
+  private static void notifyBoth(CallBook.Call c, String status) {
+    var s = ServerLifecycleHooks.getCurrentServer();
+    if (s == null) return;
+    for (var id : List.of(c.caller(), c.callee())) {
+      var p = s.getPlayerList().getPlayer(id);
+      if (p != null) ServerDevices.snapshot(p, c.device(id), false, status);
+    }
+  }
+
+  private static boolean available(ServerPlayer p, UUID d, String number) {
+    if (p == null || !p.isAlive()) return false;
+    var network = EdenSavedData.get(p.server).network;
+    var record = network.devices.get(d);
+    if (record == null
+        || !BatteryPower.powered(p.server, record)
+        || record.sim == null
+        || !network.account(d).number.equals(number)) return false;
+    for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+      var stack = p.getInventory().getItem(i);
+      if (stack.getItem() instanceof DeviceItem && d.equals(stack.get(Eden.DEVICE_ID.get())))
+        return Connectivity.mobileLink(p, record).online();
+    }
+    return record.kind.equals("desktop") && ServerDevices.terminalAvailable(p, d, record);
+  }
+
+  public static void tick(ServerTickEvent.Post e) {
+    if (e.getServer().getTickCount() % 20 != 0) return;
+    long now = System.currentTimeMillis();
+    for (var c : BOOK.all()) {
+      var a = e.getServer().getPlayerList().getPlayer(c.caller());
+      var b = e.getServer().getPlayerList().getPlayer(c.callee());
+      if (!c.active() && now - c.created() > 60000
+          || !available(a, c.callerDevice(), c.from())
+          || !available(b, c.calleeDevice(), c.to())
+          || !voiceReady
+          || !voiceConnected.test(c.caller())
+          || !voiceConnected.test(c.callee())) disconnect(c.caller());
+      else notifyBoth(c, "");
+    }
+  }
+
+  private PhoneCalls() {}
 }

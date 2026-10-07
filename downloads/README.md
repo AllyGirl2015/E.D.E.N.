@@ -1,9 +1,5 @@
-# Downloadable alpha
+# Downloads
 
-`eden-0.1.0-alpha.1.jar` is the locally compiled E.D.E.N. alpha snapshot.
+Use **eden-0.1.0-alpha.2.jar** for Minecraft 1.21.1, NeoForge 21.1.252 and Java 21. Put it in `mods/`. Do not install the `-sources.jar`; that archive is for development. Alpha.1 is kept as historical output.
 
-Requires Minecraft 1.21.1, NeoForge 21.1.252 and Java 21. Install the same JAR in the client and server `mods` folders. See the repository README for usage and unfinished features.
-
-The editable source is at the repository root. Subsequent builds are available as GitHub Actions artifacts when the build workflow succeeds. This checked-in JAR is a versioned snapshot, not an automatically updated build.
-
-Local validation: 19 unit tests and 3 Minecraft GameTests passed. Client UI and real multiplayer playtesting remain outstanding.
+Alpha.2 includes whole-phone and loose-battery FE charging, the SPhone portrait/artwork/model adaptation, optional Simple Voice Chat calls, configurable powered networking and encrypted rack cartridges. See the root README for setup, limits and optional integrations. Live two-player voice and a complete external compatibility modpack still need playtesting.

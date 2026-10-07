@@ -9,14 +9,21 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.realityradio.eden.Eden;
 
 public final class DeviceBlockEntity extends BlockEntity {
-    public UUID deviceId = UUID.randomUUID();
-    public DeviceBlockEntity(BlockPos pos, BlockState state) { super(Eden.TERMINAL_ENTITY.get(), pos, state); }
-    @Override protected void saveAdditional(CompoundTag tag, HolderLookup.Provider lookup) {
-        super.saveAdditional(tag, lookup);
-        tag.putUUID("device", deviceId);
-    }
-    @Override protected void loadAdditional(CompoundTag tag, HolderLookup.Provider lookup) {
-        super.loadAdditional(tag, lookup);
-        if (tag.hasUUID("device")) deviceId = tag.getUUID("device");
-    }
+  public UUID deviceId = UUID.randomUUID();
+
+  public DeviceBlockEntity(BlockPos pos, BlockState state) {
+    super(Eden.TERMINAL_ENTITY.get(), pos, state);
+  }
+
+  @Override
+  protected void saveAdditional(CompoundTag tag, HolderLookup.Provider lookup) {
+    super.saveAdditional(tag, lookup);
+    tag.putUUID("device", deviceId);
+  }
+
+  @Override
+  protected void loadAdditional(CompoundTag tag, HolderLookup.Provider lookup) {
+    super.loadAdditional(tag, lookup);
+    if (tag.hasUUID("device")) deviceId = tag.getUUID("device");
+  }
 }
