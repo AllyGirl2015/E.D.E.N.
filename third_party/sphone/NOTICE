@@ -1,0 +1,16 @@
+E.D.E.N. adapts source and artwork from the uploaded SPhone archive.
+Original archive: SPhone-main (1).zip, preserved unchanged.
+Reference repository: https://github.com/oriongplays/Sphone
+Contributors credited by its README: Sandji, MK, Ertinox, Gabidut76, Afhistos, Yan36.
+Original license: Apache License 2.0, retained alongside this notice.
+
+Adapted elements: GuiBase/GuiHome portrait layout; app navigation and contacts,
+messages and notes workflows; Message.java and Note.java data models; original
+ui/icons, ui/background and items PNG artwork; phone and SIM item geometry.
+Source and paths remain available in the uploaded reference archive.
+
+Changes: modern NeoForge 1.21.1 GUI/widgets and item components; immutable bounded
+records and native world persistence; FE batteries/network blocks; current optional
+voice API; server validation; modern vanilla texture references in item models.
+Legacy ACS, DynamX, JDBC and old voice binaries are not bundled. The reference ZIP
+is not included in the runtime JAR. No MrCrayfish Device Mod code/assets are included.

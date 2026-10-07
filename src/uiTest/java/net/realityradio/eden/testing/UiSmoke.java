@@ -1,0 +1,189 @@
+package net.realityradio.eden.testing;
+
+import com.google.gson.*;
+import java.nio.file.*;
+import java.util.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.realityradio.eden.client.DeviceScreen;
+
+@Mod(value = "eden", dist = Dist.CLIENT)
+public final class UiSmoke {
+  private int ticks, stage = -1;
+  private DeviceScreen screen;
+  private final String[] pages = {
+    "home",
+    "eden:messages",
+    "conversation",
+    "eden:contacts",
+    "contact_detail",
+    "eden:notes",
+    "note_edit",
+    "eden:calculator",
+    "eden:weather",
+    "eden:phone",
+    "eden:network",
+    "eden:packages",
+    "eden:appstore",
+    "wallpapers",
+    "eden:battery"
+  };
+
+  public UiSmoke() {
+    NeoForge.EVENT_BUS.addListener(this::tick);
+  }
+
+  private void tick(ClientTickEvent.Post e) {
+    var mc = Minecraft.getInstance();
+    if (mc.getOverlay() != null) return;
+    ticks++;
+    try {
+      if (stage < 0 && ticks > 40) {
+        mc.setScreen(new TitleScreen());
+        screen = new DeviceScreen(fixture());
+        mc.setScreen(screen);
+        stage = 0;
+        ticks = 0;
+      } else if (stage >= 0 && ticks == 10) {
+        var app = DeviceScreen.class.getDeclaredField("app");
+        app.setAccessible(true);
+        app.set(screen, pages[stage]);
+        var selected = DeviceScreen.class.getDeclaredField("selected");
+        selected.setAccessible(true);
+        selected.set(screen, "1000002");
+        mc.setScreen(screen);
+      }
+      if (stage >= 0 && ticks == 30) {
+        var dir = Path.of(System.getProperty("eden.uiOutput"));
+        Files.createDirectories(dir.resolve("screenshots"));
+        Screenshot.grab(
+            dir.toFile(),
+            String.format("%02d-%s.png", stage, pages[stage].replace(':', '-')),
+            mc.getMainRenderTarget(),
+            c -> {});
+        if (stage == 0) {
+          var left = DeviceScreen.class.getDeclaredField("left");
+          var top = DeviceScreen.class.getDeclaredField("top");
+          var scale = DeviceScreen.class.getDeclaredField("scale");
+          for (var f : List.of(left, top, scale)) f.setAccessible(true);
+          boolean clicked =
+              screen.mouseClicked(
+                  left.getFloat(screen) + 180 * scale.getFloat(screen),
+                  top.getFloat(screen) + 390 * scale.getFloat(screen),
+                  0);
+          var app = DeviceScreen.class.getDeclaredField("app");
+          app.setAccessible(true);
+          if (!clicked || !app.get(screen).equals("eden:messages"))
+            throw new IllegalStateException("Scaled dock input failed");
+          Files.writeString(dir.resolve("input-pass.txt"), "Scaled Messages dock input passed\n");
+          System.out.println("EDEN_UI_INPUT_PASS");
+        }
+        stage++;
+        ticks = 0;
+        if (stage == pages.length) {
+          Files.writeString(
+              dir.resolve("ui-pass.txt"), "Rendered " + stage + " phone pages successfully\n");
+          System.out.println("EDEN_UI_PASS: " + stage + " pages");
+          mc.stop();
+        }
+      }
+    } catch (Exception error) {
+      error.printStackTrace();
+      System.out.println("EDEN_UI_FAIL");
+      mc.stop();
+    }
+  }
+
+  private static JsonObject fixture() {
+    var d = new JsonObject();
+    d.addProperty("device", UUID.randomUUID().toString());
+    for (var e :
+        Map.of(
+                "kind",
+                "phone",
+                "wallpaper",
+                "b1",
+                "number",
+                "1000001",
+                "carrier",
+                "Alyon Wireless",
+                "connection",
+                "Wi-Fi",
+                "networkName",
+                "E.D.E.N. Wi-Fi",
+                "wifi",
+                "E.D.E.N. Wi-Fi",
+                "weather",
+                "Clear",
+                "dimension",
+                "minecraft:overworld",
+                "day",
+                "24")
+            .entrySet()) d.addProperty(e.getKey(), e.getValue());
+    d.addProperty("powered", true);
+    d.addProperty("online", true);
+    d.addProperty("voiceAvailable", true);
+    d.add(
+        "battery",
+        JsonParser.parseString("{\"type\":\"iron\",\"charge\":612000,\"capacity\":720000}"));
+    d.add("call", JsonParser.parseString("{\"state\":\"idle\"}"));
+    d.add(
+        "contacts",
+        JsonParser.parseString(
+            "[{\"name\":\"Alissa\",\"number\":\"1000002\"},{\"name\":\"Workshop\",\"number\":\"1000003\"}]"));
+    d.add(
+        "messages",
+        JsonParser.parseString(
+            "[{\"from\":\"1000002\",\"to\":\"1000001\",\"body\":\"The server rack is online. Meet"
+                + " me at the"
+                + " workshop?\",\"time\":1780000000000},{\"from\":\"1000001\",\"to\":\"1000002\",\"body\":\"On"
+                + " my way! Bringing a charged copper battery.\",\"time\":1780000060000}]"));
+    d.add(
+        "notebook",
+        JsonParser.parseString(
+            "[{\"id\":\"note-one\",\"title\":\"Workshop checklist\",\"text\":\"Charge batteries,"
+                + " connect the router, test voice calls.\",\"date\":1780000000000}]"));
+    d.add(
+        "racks",
+        JsonParser.parseString(
+            "[{\"id\":\"123\",\"name\":\"Workshop"
+                + " rack\",\"mine\":true,\"files\":[\"welcome\",\"blueprints\"]}]"));
+    d.add("batteries", new JsonArray());
+    var apps = new JsonArray();
+    var installed = new JsonArray();
+    String[] ids = {
+      "messages",
+      "contacts",
+      "notes",
+      "weather",
+      "calculator",
+      "settings",
+      "studio",
+      "phone",
+      "camera",
+      "gallery",
+      "appstore",
+      "plusplus",
+      "network",
+      "packages",
+      "battery"
+    };
+    for (var id : ids) {
+      var app = new JsonObject();
+      app.addProperty("id", "eden:" + id);
+      app.addProperty("title", Character.toUpperCase(id.charAt(0)) + id.substring(1));
+      app.addProperty("text", "");
+      app.addProperty("service", "");
+      apps.add(app);
+      installed.add("eden:" + id);
+    }
+    d.add("apps", apps);
+    d.add("installed", installed);
+    return d;
+  }
+}

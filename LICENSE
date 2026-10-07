@@ -1,0 +1,8 @@
+E.D.E.N. original source: All rights reserved.
+Copyright 2026 Alissa M.R. Eldridge.
+A broader redistribution license for original E.D.E.N. source has not been selected.
+
+Third-party source keeps its original license. See third_party/sphone/LICENSE
+and third_party/sphone/NOTICE. The Gradle wrapper and NeoForge MDK-derived build
+configuration retain their upstream licenses; see third_party/gradle/LICENSE
+and third_party/neoforge-mdk/LICENSE.

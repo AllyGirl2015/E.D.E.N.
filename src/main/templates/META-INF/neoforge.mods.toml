@@ -1,0 +1,35 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+issueTrackerURL="https://github.com/AllyGirl2015/E.D.E.N./issues"
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+authors="Alissa M.R. Eldridge"
+description='''Evolution Design Exploration Nexus: shared devices, apps and world-persistent services.'''
+[[dependencies.${mod_id}]]
+modId="neoforge"
+type="required"
+versionRange="[${neo_version},)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.${mod_id}]]
+modId="minecraft"
+type="required"
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.${mod_id}]]
+modId="voicechat"
+type="optional"
+versionRange="[2.5.31,)"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.${mod_id}]]
+modId="oc2r"
+type="optional"
+versionRange="[0.1.0,)"
+ordering="AFTER"
+side="BOTH"

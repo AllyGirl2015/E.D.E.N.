@@ -1,0 +1,68 @@
+package net.realityradio.eden.infrastructure;
+
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.util.*;
+import javax.crypto.*;
+import javax.crypto.spec.*;
+
+/** Authenticated encrypted storage; passwords/keys are never persisted. */
+public final class PackageVault {
+  private static final SecureRandom RANDOM = new SecureRandom();
+
+  private static SecretKey key(String password, byte[] salt) throws GeneralSecurityException {
+    if (password == null || password.length() < 8 || password.length() > 128)
+      throw new IllegalArgumentException("Passphrase must be 8–128 characters");
+    var spec = new PBEKeySpec(password.toCharArray(), salt, 120000, 256);
+    try {
+      return new SecretKeySpec(
+          SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded(),
+          "AES");
+    } finally {
+      spec.clearPassword();
+    }
+  }
+
+  public static String seal(String text, String password) {
+    if (text == null || text.length() > 2048)
+      throw new IllegalArgumentException("Package exceeds 2048 characters");
+    try {
+      byte[] salt = new byte[16], nonce = new byte[12];
+      RANDOM.nextBytes(salt);
+      RANDOM.nextBytes(nonce);
+      var c = Cipher.getInstance("AES/GCM/NoPadding");
+      c.init(Cipher.ENCRYPT_MODE, key(password, salt), new GCMParameterSpec(128, nonce));
+      var b = Base64.getEncoder();
+      return "v1:"
+          + b.encodeToString(salt)
+          + ":"
+          + b.encodeToString(nonce)
+          + ":"
+          + b.encodeToString(c.doFinal(text.getBytes(StandardCharsets.UTF_8)));
+    } catch (GeneralSecurityException e) {
+      throw new IllegalStateException("Package encryption failed", e);
+    }
+  }
+
+  public static String open(String value, String password) {
+    if (value == null || value.length() > 20000)
+      throw new IllegalArgumentException("Package not found or invalid");
+    try {
+      var a = value.split(":", -1);
+      if (a.length != 4 || !a[0].equals("v1")) throw new IllegalArgumentException();
+      var b = Base64.getDecoder();
+      var salt = b.decode(a[1]);
+      var nonce = b.decode(a[2]);
+      if (salt.length != 16 || nonce.length != 12) throw new IllegalArgumentException();
+      var c = Cipher.getInstance("AES/GCM/NoPadding");
+      c.init(Cipher.DECRYPT_MODE, key(password, salt), new GCMParameterSpec(128, nonce));
+      var text = new String(c.doFinal(b.decode(a[3])), StandardCharsets.UTF_8);
+      if (text.length() > 2048) throw new IllegalArgumentException();
+      return text;
+    } catch (GeneralSecurityException | IllegalArgumentException e) {
+      throw new IllegalArgumentException("Wrong passphrase or damaged encrypted package");
+    }
+  }
+
+  private PackageVault() {}
+}

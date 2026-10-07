@@ -1,0 +1,120 @@
+{
+  "textures": {
+    "case": "minecraft:block/black_concrete",
+    "band": "minecraft:block/netherite_block",
+    "terminal": "minecraft:block/iron_block",
+    "particle": "#band"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        1,
+        5
+      ],
+      "to": [
+        12,
+        13,
+        11
+      ],
+      "faces": {
+        "down": {
+          "texture": "#case"
+        },
+        "up": {
+          "texture": "#case"
+        },
+        "north": {
+          "texture": "#case"
+        },
+        "south": {
+          "texture": "#case"
+        },
+        "west": {
+          "texture": "#case"
+        },
+        "east": {
+          "texture": "#case"
+        }
+      }
+    },
+    {
+      "from": [
+        3.8,
+        5,
+        4.8
+      ],
+      "to": [
+        12.2,
+        9,
+        11.2
+      ],
+      "faces": {
+        "down": {
+          "texture": "#band"
+        },
+        "up": {
+          "texture": "#band"
+        },
+        "north": {
+          "texture": "#band"
+        },
+        "south": {
+          "texture": "#band"
+        },
+        "west": {
+          "texture": "#band"
+        },
+        "east": {
+          "texture": "#band"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        13,
+        6
+      ],
+      "to": [
+        10,
+        15,
+        10
+      ],
+      "faces": {
+        "down": {
+          "texture": "#terminal"
+        },
+        "up": {
+          "texture": "#terminal"
+        },
+        "north": {
+          "texture": "#terminal"
+        },
+        "south": {
+          "texture": "#terminal"
+        },
+        "west": {
+          "texture": "#terminal"
+        },
+        "east": {
+          "texture": "#terminal"
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        20,
+        30,
+        0
+      ],
+      "scale": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    }
+  }
+}

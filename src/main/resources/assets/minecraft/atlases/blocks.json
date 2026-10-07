@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "type": "minecraft:single",
+      "resource": "sphone:items/iphone12"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "sphone:items/sim"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "sphone:items/sim_blue"
+    }
+  ]
+}

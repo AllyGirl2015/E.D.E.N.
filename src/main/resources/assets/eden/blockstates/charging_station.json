@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "online=false": {
+      "model": "eden:block/charging_station"
+    },
+    "online=true": {
+      "model": "eden:block/charging_station_on"
+    }
+  }
+}

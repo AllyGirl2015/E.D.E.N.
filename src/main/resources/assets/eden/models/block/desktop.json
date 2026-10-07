@@ -1,0 +1,105 @@
+{
+  "textures": {
+    "screen": "eden:block/desktop",
+    "case": "minecraft:block/deepslate",
+    "particle": "minecraft:block/deepslate"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        2
+      ],
+      "to": [
+        15,
+        2,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#case"
+        },
+        "south": {
+          "texture": "#screen"
+        },
+        "east": {
+          "texture": "#case"
+        },
+        "west": {
+          "texture": "#case"
+        },
+        "up": {
+          "texture": "#case"
+        },
+        "down": {
+          "texture": "#case"
+        }
+      }
+    },
+    {
+      "from": [
+        7,
+        2,
+        7
+      ],
+      "to": [
+        9,
+        7,
+        9
+      ],
+      "faces": {
+        "north": {
+          "texture": "#case"
+        },
+        "south": {
+          "texture": "#screen"
+        },
+        "east": {
+          "texture": "#case"
+        },
+        "west": {
+          "texture": "#case"
+        },
+        "up": {
+          "texture": "#case"
+        },
+        "down": {
+          "texture": "#case"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        5,
+        7
+      ],
+      "to": [
+        15,
+        15,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#case"
+        },
+        "south": {
+          "texture": "#screen"
+        },
+        "east": {
+          "texture": "#case"
+        },
+        "west": {
+          "texture": "#case"
+        },
+        "up": {
+          "texture": "#case"
+        },
+        "down": {
+          "texture": "#case"
+        }
+      }
+    }
+  ]
+}
