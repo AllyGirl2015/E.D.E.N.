@@ -43,6 +43,10 @@ public final class NetworkJson {
             var device = entry.getValue();
             if (device == null || !entry.getKey().equals(device.id) || device.kind == null || device.notes == null || device.theme == null)
                 throw new IllegalStateException("Invalid saved device");
+            if(device.wallpaper==null)device.wallpaper="b1";if(device.wifiSsid==null)device.wifiSsid="";if(device.wifiKey==null)device.wifiKey="";
+            if(device.installedApps==null)device.installedApps=DeviceRecord.defaultApps();
+            if(device.notebook==null){device.notebook=new java.util.LinkedHashMap<>();if(!device.notes.isBlank())device.notebook.put("legacy",new PhoneNote("legacy","My note",device.notes,0));}
+            if(device.battery!=null){var battery=device.battery;try{if(battery.id==null||battery.type==null||battery.charge<0||battery.charge>BatteryPack.capacity(battery.type))throw new IllegalArgumentException();}catch(IllegalArgumentException e){throw new IllegalStateException("Invalid saved battery");}}
             if (device.sim != null) {
                 var sim = result.sims.get(device.sim);
                 if (sim == null || !device.id.equals(sim.installedDevice))

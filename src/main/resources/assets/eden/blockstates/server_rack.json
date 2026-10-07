@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "online=false": {
+      "model": "eden:block/server_rack"
+    },
+    "online=true": {
+      "model": "eden:block/server_rack_on"
+    }
+  }
+}

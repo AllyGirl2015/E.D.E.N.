@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "online=false": {
+      "model": "eden:block/cell_tower"
+    },
+    "online=true": {
+      "model": "eden:block/cell_tower_on"
+    }
+  }
+}

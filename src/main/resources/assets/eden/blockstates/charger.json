@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "online=false": {
+      "model": "eden:block/charger"
+    },
+    "online=true": {
+      "model": "eden:block/charger_on"
+    }
+  }
+}

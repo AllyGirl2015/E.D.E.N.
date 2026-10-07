@@ -10,7 +10,12 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
     withSourcesJar()
 }
-repositories { mavenCentral() }
+repositories {     mavenCentral()
+    maven { url = 'https://maven.maxhenkel.de/repository/public'; content { includeGroup 'de.maxhenkel.voicechat' } }
+    ivy { url = 'https://github.com/DivByDiamond/OC2R/releases/download'
+        patternLayout { artifact 'v[revision]/[artifact]-[revision](-[classifier]).[ext]' }
+        metadataSources { artifact() }; content { includeGroup 'li.cil.oc2' }
+    } }
 
 neoForge {
     version = project.neo_version
@@ -29,6 +34,9 @@ neoForge {
 }
 
 dependencies {
+    compileOnly 'de.maxhenkel.voicechat:voicechat-api:2.5.31'
+    compileOnly 'li.cil.oc2:oc2r-1.21.1-neoforge:0.1.0:api@jar'
+    testImplementation 'de.maxhenkel.voicechat:voicechat-api:2.5.31' 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testImplementation 'com.google.code.gson:gson:2.10.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -58,4 +66,12 @@ test { useJUnitPlatform() }
 jar {
     from('third_party') { into 'META-INF/third_party' }
     from('LICENSE') { into 'META-INF' }
+}
+
+// Opt-in rendered client smoke test; never bundled in runtime JARs.
+if (providers.gradleProperty('edenUiTest').isPresent()) {
+ def ui=sourceSets.create('uiTest');ui.compileClasspath+=sourceSets.main.compileClasspath+sourceSets.main.output
+ ui.runtimeClasspath+=sourceSets.main.runtimeClasspath+ui.output;neoForge.mods.eden.sourceSet(ui)
+ neoForge.runs.client.systemProperty('eden.uiOutput',file('../ui-captures').absolutePath)
+ neoForge.runs.client.programArguments.addAll(['--width','1280','--height','900'])
 }

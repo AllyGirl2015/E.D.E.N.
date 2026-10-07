@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "online=false": {
+      "model": "eden:block/wifi_router"
+    },
+    "online=true": {
+      "model": "eden:block/wifi_router_on"
+    }
+  }
+}

@@ -8,7 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 public record DeviceSnapshot(String json, boolean open) implements CustomPacketPayload {
     public static final Type<DeviceSnapshot> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath("eden", "snapshot"));
     public static final StreamCodec<RegistryFriendlyByteBuf, DeviceSnapshot> CODEC = StreamCodec.of(
-        (buf, p) -> { buf.writeUtf(p.json, 196608); buf.writeBoolean(p.open); },
-        buf -> new DeviceSnapshot(buf.readUtf(196608), buf.readBoolean()));
+        (buf, p) -> { buf.writeByteArray(SnapshotCompression.encode(p.json)); buf.writeBoolean(p.open); },
+        buf -> new DeviceSnapshot(SnapshotCompression.decode(buf.readByteArray(SnapshotCompression.MAX_WIRE)), buf.readBoolean()));
     @Override public Type<DeviceSnapshot> type() { return TYPE; }
 }

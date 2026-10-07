@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "online=false": {
+      "model": "eden:block/wan_gateway"
+    },
+    "online=true": {
+      "model": "eden:block/wan_gateway_on"
+    }
+  }
+}

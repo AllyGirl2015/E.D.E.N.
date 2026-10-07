@@ -4,5 +4,20 @@
   "item.eden.tablet": "E.D.E.N. Tablet",
   "item.eden.laptop": "E.D.E.N. Laptop",
   "item.eden.sim": "SIM Card",
-  "block.eden.desktop": "E.D.E.N. Desktop"
+  "block.eden.desktop": "E.D.E.N. Desktop",
+  "block.eden.cell_tower": "Cell Tower",
+  "block.eden.wifi_router": "Wifi Router",
+  "block.eden.internet_gateway": "Wan Gateway",
+  "block.eden.server_rack": "Server Rack",
+  "block.eden.charging_station": "Charger",
+  "block.eden.ethernet_cable": "Ethernet Cable",
+  "block.eden.wan_cable": "Wan Cable",
+  "item.eden.coal_battery": "Coal Battery",
+  "item.eden.copper_battery": "Copper Battery",
+  "item.eden.iron_battery": "Iron Battery",
+  "item.eden.gold_battery": "Gold Battery",
+  "item.eden.diamond_battery": "Diamond Battery",
+  "item.eden.netherite_battery": "Netherite Battery",
+  "item.eden.creative_battery": "Creative Battery",
+  "item.eden.data_disk": "Encrypted Data Cartridge"
 }

@@ -82,4 +82,53 @@ public final class EdenGameTests {
         helper.succeed();
     }
 
+
+    @GameTest(template = "empty")
+    public static void looseBatteryAndWholePhoneCharge(GameTestHelper helper) {
+        var level=helper.getLevel();var pos=helper.absolutePos(new BlockPos(1,1,1));
+        level.setBlockAndUpdate(pos,Eden.CHARGER.get().defaultBlockState());
+        var station=(net.realityradio.eden.infrastructure.NetworkNodeEntity)level.getBlockEntity(pos);
+        var coal=new ItemStack(Eden.BATTERIES.get("coal").get());
+        var cell=coal.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM);
+        helper.assertTrue(cell!=null&&cell.getMaxEnergyStored()==192000,"Coal has eight days of FE capacity");
+        helper.assertTrue(cell.receiveEnergy(500,true)==500&&cell.getEnergyStored()==0,"Loose battery simulation is read only");
+        station.inventory.setStackInSlot(0,coal);station.energy.receiveEnergy(4096,false);
+        net.realityradio.eden.infrastructure.NetworkNodeEntity.tick(level,pos,station.getBlockState(),station);
+        helper.assertTrue(cell.getEnergyStored()==1024&&station.energy.getEnergyStored()==3070,"Charger transfers FE and pays idle draw");
+        station.inventory.setStackInSlot(0,ItemStack.EMPTY);
+        var id=UUID.randomUUID();var record=new DeviceRecord(id,"phone");
+        record.battery=new net.realityradio.eden.core.BatteryPack(UUID.randomUUID(),"copper",0,level.getServer().overworld().getGameTime());
+        EdenSavedData.get(level.getServer()).network.devices.put(id,record);
+        var phone=new ItemStack(Eden.PHONE.get());phone.set(Eden.DEVICE_ID.get(),id);station.inventory.setStackInSlot(0,phone);
+        helper.assertTrue(level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.BLOCK,pos,null)!=null,"Automation can insert a whole phone");
+        net.realityradio.eden.infrastructure.NetworkNodeEntity.tick(level,pos,station.getBlockState(),station);
+        helper.assertTrue(record.battery.charge==1024,"Phone charges its installed battery");
+        var phoneEnergy=phone.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.ITEM);
+        helper.assertTrue(phoneEnergy.receiveEnergy(500,true)==500&&record.battery.charge==1024,"Other mod chargers can simulate whole-phone charging");
+        helper.assertTrue(phoneEnergy.receiveEnergy(500,false)==500&&record.battery.charge==1524,"Direct FE charging reaches the installed battery");
+        record.battery=null;helper.assertTrue(!phoneEnergy.canReceive()&&phoneEnergy.receiveEnergy(500,false)==0,"Removing the battery stops charging");helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void cableCutsAndPowerLossDisconnectBackhaul(GameTestHelper helper) {
+        var level=helper.getLevel();var routerPos=helper.absolutePos(new BlockPos(1,1,1));var cablePos=routerPos.east();var gatewayPos=cablePos.east();
+        level.setBlockAndUpdate(routerPos,Eden.ROUTER.get().defaultBlockState());level.setBlockAndUpdate(cablePos,Eden.CABLE.get().defaultBlockState());level.setBlockAndUpdate(gatewayPos,Eden.GATEWAY.get().defaultBlockState());
+        var router=(net.realityradio.eden.infrastructure.NetworkNodeEntity)level.getBlockEntity(routerPos);var gateway=(net.realityradio.eden.infrastructure.NetworkNodeEntity)level.getBlockEntity(gatewayPos);
+        router.powered=true;gateway.powered=true;
+        helper.assertTrue(net.realityradio.eden.infrastructure.Connectivity.uplink(level,router),"Powered router reaches cabled gateway");
+        level.removeBlock(cablePos,false);helper.assertTrue(!net.realityradio.eden.infrastructure.Connectivity.uplink(level,router),"Cable cut disconnects WAN");
+        level.setBlockAndUpdate(cablePos,Eden.WAN_CABLE.get().defaultBlockState());gateway.powered=false;helper.assertTrue(!net.realityradio.eden.infrastructure.Connectivity.uplink(level,router),"Unpowered gateway stops WAN");
+        var fe=level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.EnergyStorage.BLOCK,gatewayPos,null);
+        helper.assertTrue(fe!=null&&fe.receiveEnergy(1000,true)==1000&&fe.getEnergyStored()==0,"Standard block FE simulates cleanly");fe.receiveEnergy(1000,false);helper.assertTrue(fe.getEnergyStored()==1000,"Standard FE powers node");helper.succeed();
+    }
+    @GameTest(template = "empty")
+    public static void rackPreservesInventoryAndEncryptedCartridge(GameTestHelper helper) {
+        var level=helper.getLevel();var pos=helper.absolutePos(new BlockPos(1,1,1));level.setBlockAndUpdate(pos,Eden.RACK.get().defaultBlockState());
+        var rack=(net.realityradio.eden.infrastructure.NetworkNodeEntity)level.getBlockEntity(pos);rack.owner=UUID.randomUUID();rack.powered=true;
+        rack.packages.put("shared",net.realityradio.eden.infrastructure.PackageVault.seal("Hello LAN","strong-password"));rack.inventory.setStackInSlot(0,new ItemStack(Eden.DATA_DISK.get()));
+        helper.assertTrue(rack.exportDisk("shared"),"Encrypted package exports to physical cartridge");var disk=rack.inventory.getStackInSlot(0).copy();
+        var tag=rack.saveWithFullMetadata(level.registryAccess());var owner=rack.owner;
+        level.removeBlock(pos,false);level.setBlockAndUpdate(pos,Eden.RACK.get().defaultBlockState());rack=(net.realityradio.eden.infrastructure.NetworkNodeEntity)level.getBlockEntity(pos);rack.loadWithComponents(tag,level.registryAccess());rack.powered=true;
+        helper.assertTrue(owner.equals(rack.owner)&&rack.inventory.getStackInSlot(0).is(Eden.DATA_DISK.get()),"Rack restores owner and inventory");rack.packages.clear();rack.inventory.setStackInSlot(0,disk);
+        helper.assertTrue(rack.importDisk(),"Cartridge imports encrypted package");helper.assertTrue(net.realityradio.eden.infrastructure.PackageVault.open(rack.packages.get("shared"),"strong-password").equals("Hello LAN"),"Imported ciphertext decrypts with correct password");helper.succeed();
+    }
 }

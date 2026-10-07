@@ -5,7 +5,7 @@ import java.util.*;
 public final class SimAccount {
     public final UUID id;
     public final String number;
-    public final String carrier;
+    public String carrier;
     public UUID installedDevice;
     public final Map<String, String> contacts = new LinkedHashMap<>();
     public final List<PhoneMessage> messages = new ArrayList<>();
