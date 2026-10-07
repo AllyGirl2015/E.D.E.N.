@@ -1,20 +1,11 @@
 # Architecture
 
-| Layer | Responsibility | Persistence |
-|---|---|---|
-| Item components | Physical device UUID and SIM UUID | ItemStack native components |
-| Desktop block entity | Placed device UUID | Block entity NBT |
-| Domain network | SIM/number bindings, SMS, contacts, device notes/settings, Studio catalog | Overworld SavedData |
-| Server transport | Authenticate opened device, check current access, validate/rate-limit actions | Ephemeral session map; cleared at server stop/logout |
-| Client UI | Shared launcher, native screens, drafts and rendering | Drafts only while the screen exists |
-| Java SDK | App descriptors, trusted service handlers, optional client screen factories | Addon-owned behavior; E.D.E.N. state marked dirty after successful calls |
+`EdenSavedData` owns UUID-keyed device records and SIM accounts in native world storage. An additive migration restores alpha.1 notes and defaults. GUI actions require a valid held-device or nearby desktop session and are rate limited. The client receives bounded compressed JSON snapshots; no client-supplied identity controls another player's account.
 
-The server issues numbers and owns all account records. A device item carries no inbox. Removing a SIM disconnects its device without deleting the account, and offline SMS remains in the account. Provider is currently a label; there is no simulated tower requirement.
+SPhone's portrait shell and assets are adapted in `DeviceScreen`. Physical SIMs and batteries have persistent native item components. Installed battery charge resides in the device record; `BatteryPower` bridges it to standard FE item capabilities.
 
-All dimensions resolve the overworld's `eden_network` data file so traveling between dimensions does not split accounts. Save with the world; back up the **whole world**, including inventories, block entities and `data/eden_network.dat`.
+`Connectivity` indexes loaded network nodes per dimension and follows loaded bounded cable graphs. `NetworkNodeEntity` owns FE, owner/configuration, nine-slot inventory and encrypted package storage. Its optional OC2 callback annotations are compile-only, with no API binaries bundled.
 
-The world schema is versioned. This alpha does not import old SPhone SQL databases and makes no compatibility promise with SPhone save data. New devices initialize on first use; fresh SIMs register on first insertion.
+`CallBook` validates call lifecycle; `PhoneCalls` validates online ownership, voice session, power, SIM and coverage. The optional Simple Voice Chat plugin reroutes accepted microphone packets only to the peer of an active call, cancelling proximity forwarding first. Server shutdown/logout and liveness polling clean up sessions and calls.
 
-Clients receive the opened device's recent SMS/contacts/settings and the public app catalog. They do not receive other accounts' histories. Request string lengths are bounded on the wire, and accepted requests are limited to once every four game ticks per opened session. One SIM cannot be inserted into two different registered devices through normal gameplay. Administrative copies of UUID-bearing items can share the original identity; physical uniqueness is not cryptographically guaranteed.
-
-The initial module layout keeps pure domain logic independent of Minecraft. GUI dependencies remain client-only. This permits meaningful unit tests for transfer, messaging, ownership and persistence without starting the game, while registry/GUI/server integration still needs Minecraft runtime checks.
+The app/service SDK is documented in SDK.md and APP_STUDIO.md. Published apps are declarative UI/service descriptors; packages hold bounded text/data. This is an in-game network model, with no arbitrary remote code or external internet transport.

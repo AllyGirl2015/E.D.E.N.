@@ -85,7 +85,7 @@ public final class ServerDevices {
                 case "eject_battery" -> {
                     if(device.battery==null)throw new IllegalArgumentException("No battery installed");BatteryPower.powered(player.server,device);var b=device.battery;var stack=new ItemStack(Eden.BATTERIES.get(b.type).get());stack.set(Eden.BATTERY_ID.get(),b.id);stack.set(Eden.BATTERY_ENERGY.get(),b.charge);device.battery=null;PhoneCalls.disconnect(player.getUUID());if(!player.getInventory().add(stack))player.drop(stack,false);data.setDirty();result="Battery removed";
                 }
-                case "wifi" -> {device.wifiSsid=action.a().trim();device.wifiKey=NetworkPolicy.wifiKey(device.wifiSsid,action.b());data.setDirty();result="Wi-Fi settings saved";}
+                case "wifi" -> {if(action.a().length()>48||action.b().length()>128)throw new IllegalArgumentException("Wi-Fi settings exceed the length limit");device.wifiSsid=action.a().trim();device.wifiKey=NetworkPolicy.wifiKey(device.wifiSsid,action.b());data.setDirty();result="Wi-Fi settings saved";}
                 case "carrier" -> {if(action.a().isBlank()||action.a().length()>48)throw new IllegalArgumentException("Carrier must be 1–48 characters");network.account(device.id).carrier=action.a().trim();data.setDirty();result="SIM carrier updated";}
                 case "call" -> result=PhoneCalls.dial(player,device,action.a());
                 case "answer" -> result=PhoneCalls.answer(player,device);

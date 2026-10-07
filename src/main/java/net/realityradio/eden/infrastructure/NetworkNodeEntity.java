@@ -22,7 +22,7 @@ public final class NetworkNodeEntity extends BlockEntity {
  public final class NodeEnergy extends EnergyStorage {
   NodeEnergy(){super(200000,1000000,0);}private void configure(){capacity=EdenConfig.BUFFER_FE.get();maxReceive=EdenConfig.MAX_DRAW.get()*20;energy=Math.min(energy,capacity);}
   public int receiveEnergy(int amount,boolean simulate){configure();int n=super.receiveEnergy(Math.max(0,amount),simulate);if(n>0&&!simulate)setChanged();return n;}
-  public int getMaxEnergyStored(){configure();return super.getMaxEnergyStored();}public boolean spend(int amount){if(energy<amount)return false;energy-=amount;setChanged();return true;}public void restore(int value){energy=Math.max(0,Math.min(value,200000000));}
+  public int getEnergyStored(){configure();return super.getEnergyStored();}public int getMaxEnergyStored(){configure();return super.getMaxEnergyStored();}public boolean spend(int amount){if(energy<amount)return false;energy-=amount;setChanged();return true;}public void restore(int value){energy=Math.max(0,Math.min(value,200000000));}
  }
  public void onLoad(){super.onLoad();if(level instanceof ServerLevel s)Connectivity.add(s,this);}public void setRemoved(){if(level instanceof ServerLevel s)Connectivity.remove(s,worldPosition);super.setRemoved();}
  public static void tick(Level level,BlockPos pos,BlockState state,NetworkNodeEntity n){int cost=n.kind().equals("charger")?2:Math.max(n.kind().equals("router")?EdenConfig.ROUTER_FE.get():n.kind().equals("gateway")?EdenConfig.GATEWAY_FE.get():1,Math.min(n.powerDraw,EdenConfig.MAX_DRAW.get()));boolean on=n.enabled&&(!EdenConfig.REQUIRE_POWER.get()||n.energy.spend(cost));n.powered=on;

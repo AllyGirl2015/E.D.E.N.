@@ -1,65 +1,40 @@
-# E.D.E.N. — Evolution Design Exploration Nexus
+# E.D.E.N. — 0.1.0-alpha.2
 
-A NeoForge **Minecraft 1.21.1 / Java 21** device and service platform for Alissa's E.D.E.N./Pokemonsters project.
+Minecraft **1.21.1 / NeoForge 21.1.252 / Java 21**. Install the runtime JAR from `downloads/` into `mods/`. The original uploaded SPhone archive remains unchanged in this repository.
 
-**Development alpha, not a completed SPhone port.** This repository preserves the uploaded original SPhone ZIP as a historical reference and develops a new implementation at the repository root. Do not install that ZIP or the old 1.12.2 libraries into a modern server.
+This alpha adapts SPhone's portrait phone shell, original icons, wallpapers, phone/SIM models, message model and note workflows to modern NeoForge. It adds contacts, threaded messages, multiple notes, calculator, weather, wallpaper selection, App Store, calls, batteries and powered networking. Phone, tablet, laptop and desktop share the app platform. It does not reproduce every historical SPhone feature.
 
-## Available in this alpha
+## Quick setup
 
-- Phone, tablet and laptop items; placeable desktop terminal.
-- Shared native E.D.E.N. OS screen and app catalog on every device.
-- Physical SIM insertion/ejection, server-issued unique numbers and Alyon Wireless accounts.
-- SMS, including offline delivery; SIM-owned contacts and message history.
-- Device notes, calculator, current world weather and three themes.
-- App Studio: create/update text apps and shared bulletin services inside the game, then connect an app to a service.
-- Java addon APIs for app descriptors, server services and optional client screens.
-- Native ItemStack data components and overworld SavedData. No SQL/database installation.
+1. Supply FE to a Charging Station. Shift-right-click to open its nine slots. Charge a loose battery, then install it from the phone's Battery app, or put the entire phone in a slot to charge its installed battery. Compatible external FE item chargers can also charge phones and loose batteries.
+2. Keep a SIM in your inventory and insert it from Settings. Set its carrier in Network.
+3. Power an Internet Gateway, then connect a matching Cell Tower or WiFi Router with Ethernet/WAN cable blocks. Configure hardware with right-click; the placing player or an operator can edit settings. Shift-right-click Server Racks opens their cartridge inventory.
+4. Join the router's SSID/password in Network, or use a matching carrier within tower coverage. Desktops can use adjacent Ethernet cables.
+5. For calls, install Simple Voice Chat on both clients and the server. Both players need connected voice sessions, powered devices and coverage. Dial, answer and use your voice-chat microphone key.
+6. Connect a Server Rack to the LAN. Its owner can upload passphrase-encrypted text/data packages, export cartridges or import them. Other users who know the passphrase can download packages.
 
-Cellular coverage currently spans the whole world. **Voice calls, tower/carrier simulation, Create/energy adapters, Wi-Fi/Ethernet, banking, transport services, camera/gallery and an advanced visual app editor are not implemented.** No compatibility with those external mods is claimed yet.
+## Batteries
 
-## Install a built JAR
+Normal batteries are crafted empty. Installed batteries use one FE per game tick; removed batteries retain their charge. Sleeping changes daylight without consuming skipped game ticks. Pausing/stopping the server pauses drain. Creative batteries have no recipe.
 
-Use NeoForge **21.1.252** for Minecraft **1.21.1**, with Java **21**. Put `eden-0.1.0-alpha.1.jar` into `mods` on both client and server. Use a test world first; world storage and APIs are experimental.
+| Battery | Minecraft days | Normal-speed real time | Capacity |
+|---|---:|---:|---:|
+| Coal | 8 | 2h 40m | 192,000 FE |
+| Copper | 15 | 5h | 360,000 FE |
+| Iron | 30 | 10h | 720,000 FE |
+| Gold | 40 | 13h 20m | 960,000 FE |
+| Diamond | 60 | 20h | 1,440,000 FE |
+| Netherite | 80 | 26h 40m | 1,920,000 FE |
+| Creative | Infinite | Infinite | Infinite |
 
-A compiled alpha snapshot is also included in `downloads/`. The `-sources.jar` is for developers, not installation. The source ZIP is a project, not a playable mod.
+## Scope and compatibility
 
-## First play
+All infrastructure accepts NeoForge FE. Flux Networks and Create Power Grid can feed that capability when their installed versions support it. Create kinetic power needs an FE generator/converter. The charger defaults to a shared 1,024 FE/t slot budget plus 2 FE/t idle draw. Server config controls required power, batteries, network/backhaul, range, draw, buffer capacity and traversal limits; hardware settings control SSID, password, carrier, enabled state, range and power budget.
 
-1. Find the **E.D.E.N. Devices** creative tab, or craft a device and SIM with the included recipes.
-2. Right-click a handheld device, or right-click a placed desktop with an empty hand.
-3. Open **Settings**, keep a SIM in your inventory and click **Insert SIM**.
-4. Your assigned number appears in the header. Give it to another player.
-5. Open **Messages**, enter their number and message, then click **Send**.
-6. **Eject SIM** returns the card to your inventory (or drops it if full). Insert it into a replacement device to retain your number, contacts and SMS.
-7. Open **App Studio** for in-game apps and services. See [the Studio walkthrough](docs/APP_STUDIO.md).
+AE2 compatibility exposes the rack's physical cartridge inventory via the standard item capability. It is not an ME terminal or autocrafting bridge. OC2R 0.1.0 compatibility adds adjacent device-bus callbacks for status and controlled package access. It is not an OC2 Linux Ethernet/TCP/IP bridge. These optional integrations need live modpack testing.
 
-SMS is limited to 512 characters; each SIM retains its most recent 100 messages and sends its latest 50 to the screen. Contacts are capped at 64. Scroll the text areas to view history. Refresh retrieves current server data.
+Internet Gateways connect to an abstract in-game backend. Ethernet and WAN cable blocks currently use the same routing rules. No real internet access, IP addressing, DHCP, VLANs or firewall simulation is implemented. Package encryption is AES-GCM encrypted storage with passphrase-derived keys; it does not make the LAN transport end-to-end encrypted. Packages are bounded text/data, not executable arbitrary code.
 
-The desktop ejects its SIM when broken. Its survival drop carries the device ID so replacing it retains notes/settings. An explosion that destroys the drop can lose the physical device; the SIM is ejected separately.
+Camera uses Minecraft's F2 screenshot workflow; Gallery displays this computer's screenshots. Weather reports current conditions, without forecasting. Live two-player voice/audio and full external modpack compatibility have not yet been verified.
 
-## Build
-
-Install JDK 21, then:
-
-```powershell
-.\gradlew.bat build
-```
-
-On Linux/macOS:
-
-```sh
-./gradlew build
-```
-
-JARs appear in `build/libs`. The first build downloads Minecraft/NeoForge and can take several minutes. Development commands: `gradlew.bat runClient` and `gradlew.bat runServer`. Tests: `gradlew.bat test`.
-
-GitHub Actions builds on the development branch and pull requests, and uploads the runtime and sources JARs plus test reports. It does not publish a release or deploy a server.
-
-## Developers and project status
-
-- [Java SDK](docs/SDK.md)
-- [Architecture and data ownership](docs/ARCHITECTURE.md)
-- [Features and remaining work](docs/ROADMAP.md)
-- [Validation](docs/VALIDATION.md)
-
-This is a new architecture inspired by SPhone and the shared-device concept of MrCrayfish's Device Mod. It is not binary-compatible with their apps or saves. The adapted SPhone message model retains Apache-2.0 attribution under `third_party/sphone`. No MrCrayfish source/assets, ACsGuis, DynamX or JDBC binaries are bundled. Original E.D.E.N. code has not yet been assigned an open-source redistribution license; see `LICENSE`.
+Build: `./gradlew build`; integration tests: `./gradlew runGameTestServer`. Optional rendered fixture: `./gradlew runClient -PedenUiTest`. See [validation](docs/VALIDATION.md), [power/network details](docs/POWER_AND_NETWORKING.md) and the retained SPhone license/notice under `third_party/sphone/`.
